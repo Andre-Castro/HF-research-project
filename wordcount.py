@@ -1,5 +1,5 @@
 '''
-Created on Jan 13, 2017
+Created on Jan 25, 2017
 
 @author: Andre
 '''
@@ -7,46 +7,48 @@ from bs4 import BeautifulSoup
 from nltk.stem import PorterStemmer
 import re
 
-def findKeyWords(postContent, keyWords, file, row, colNums):
-#     for keyWord in keyWords: #for each keyWord
-#         numKeyWord = postContent.count(keyWord) #part where i should change the matching algorithm
-# #         numKeyWord = len(re.findall(keyWord, postContent))
-#         if numKeyWord != 0:
-#             col = colNums[keyWord]
-#             file.write(str(row) + ',' + str(col) + ',' + str(numKeyWord) + "\n")
-    ps = PorterStemmer()
-    
-    keyWordsStemmed = []
-    wordDict = {}
-    
-    for word in keyWords:
-        keyWordsStemmed.append(" " + ps.stem(word.strip(" ")))
-    
-    keyWordsZip = zip(keyWords, keyWordsStemmed)#going to zip as a quick-fix for now, in the future use only stemmed keywords? seems the base form is not important...
-    for word in keyWordsZip:
-        if word[1].lower() in postContent: #only check if word stem exists in file, doesnt take into account how many times its in file
-            #amount = postContent.count(word[1]) #fixes that but now botanical being found for bot...
-            #FIX: have to check stems of both keyword AND everyword in the file to do this correctly... no other way
-            #FIX: USE REGEX
-            amount = 0
-            pattern = word[1] + "[\S]*"
-            wordInstances = re.findall(pattern,postContent)
-            #print(wordInstances, row)
-            for instance in wordInstances:
-                if word[1] == ps.stem(re.sub(r'[^\s\w]|_','',instance)): #check if the stems of the found words are the same, re is there to remove punctuation and unnecessary characters
-                    amount = amount + 1
-                    print(row, instance, amount)
-            if amount != 0:
-                if word[0] not in wordDict:
-                    wordDict[word[0]] = amount
-                else:
-                    print(word[0])
-                    wordDict[word[0]] = wordDict[word[0]] + 1
-                    #FIIIIIXXXEDDDD got it grabbing stems and phrases :)
-    for instance in wordDict:
-        col = colNums[instance]
-        file.write(str(row) + ',' + str(col) + ',' + str(wordDict[instance]) + ',' + "\n")
-#         print(row, instance, wordDict[instance])
+def findKeyWords(postContent, keyWords, file, row, colNums, permutationsBool):
+    if not permutationsBool:
+        for keyWord in keyWords: #for each keyWord
+            numKeyWord = postContent.count(keyWord) #part where i should change the matching algorithm
+    #         numKeyWord = len(re.findall(keyWord, postContent))
+            if numKeyWord != 0:
+                col = colNums[keyWord]
+                file.write(str(row) + ',' + str(col) + ',' + str(numKeyWord) + "\n")
+    else:
+        ps = PorterStemmer()
+        
+        keyWordsStemmed = []
+        wordDict = {}
+        
+        for word in keyWords:
+            keyWordsStemmed.append(" " + ps.stem(word.strip(" ")))
+        
+        keyWordsZip = zip(keyWords, keyWordsStemmed)#going to zip as a quick-fix for now, in the future use only stemmed keywords? seems the base form is not important...
+        for word in keyWordsZip:
+            if word[1].lower() in postContent: #only check if word stem exists in file, doesnt take into account how many times its in file
+                #amount = postContent.count(word[1]) #fixes that but now botanical being found for bot...
+                #FIX: have to check stems of both keyword AND everyword in the file to do this correctly... no other way
+                #FIX: USE REGEX
+                amount = 0
+                pattern = word[1] + "[\S]*"
+                wordInstances = re.findall(pattern,postContent)
+                #print(wordInstances, row)
+                for instance in wordInstances:
+                    if word[1] == ps.stem(re.sub(r'[^\s\w]|_','',instance)): #check if the stems of the found words are the same, re is there to remove punctuation and unnecessary characters
+                        amount = amount + 1
+#                         print(row, instance, amount)
+                if amount != 0:
+                    if word[0] not in wordDict:
+                        wordDict[word[0]] = amount
+                    else:
+#                         print(word[0])
+                        wordDict[word[0]] = wordDict[word[0]] + 1
+                        #FIIIIIXXXEDDDD got it grabbing stems and phrases :)
+        for instance in wordDict:
+            col = colNums[instance]
+            file.write(str(row) + ',' + str(col) + ',' + str(wordDict[instance]) + ',' + "\n")
+#             print(row, instance, wordDict[instance])
     return
 
 def findURLs(postDataTuple, cleanPostContent, urlDict):
@@ -115,28 +117,22 @@ def clean(postContent):
 #     print(postContent.encode("utf-8"))
     return postContent
 
-#POSSIBLE OPTIMIZATION
-    # in replaceURL's instead of having to find the URL's again using re.finditer, you can just do re.findIter in findURL's
-        #and get the span() there and save that as the second part of the tuple to urlDict rather than the PID since the pid
-        #isnt really being used. However, problem with this is that since findURLs is split up into the bs4 part and the
-        #cleanpostContent part, there are duplicate URLS found... which is why I'm not currently doing it this way.
-        #BUT, if there was a way to avoid this duplicate url finding this would most likely speed up the program having
-        #already found the URL position ahead of time
-        #speaking of which, the current method doesnt even need to be a list of tuples, it could just be a list of URL strings
-        
-#notes
-    #You either improve the regex to get a perfect URL, or you replace by index and risk cutting something you dont need to
-    # or leaving behind something uncur which is not as bad.
+#notes for 1/26
+#    - Word permutations should be 100% functional.
+#        -Still need to double check hypthenated words or words that SOMETIMES have space see how those are working...
+#    - Downloaded pyeEnchant
+#    - opened github project (https://github.com/Andre-Castro/HF-research-project)
+#    - Inlcuded option for searching for word permutations or not
+#    - Added about ~50 keywords, check to see if they are ok
 
-#Notes
-    #whitespace
-    #capital matters
-    #root words
-    #misspellings (use edit distances, parameter in func, let user specify how forgiving they want to be)
-    #for phrases like "black goat" if somewhere it is seperated by somethign elsee besides a sapce you can compare the pid's to see if the phrase is actually there
-    # 
-    # ip prefixes, and v6
-    # acount for duplicates
-    # compare ip's to blacklists / visual inspection
-    #
-    #Hidden url's spaces, or character replacements for www. such as ,,, or something
+
+#notes
+#- use pyenchant for the space issues with keywords, hopefully find mispellings
+# for keywords with mulitple words where one of the words is a keyword independently, subtract to find sole uses
+#try wordcount on wilders to get keywords
+#googlw some stuff to
+#prepare good corpus of active words
+#generate keywords list based off wilders and offcomm tables, pick important words
+#email github link
+#include ALL words, not just malcioius intent ones
+#ultimately, combine generated keywords

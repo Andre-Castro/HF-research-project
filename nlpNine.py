@@ -14,6 +14,7 @@ urlDict = [] #dict storing url instances and the pid of the post they were found
 ipDict = {} #dict storing instances of ip addressses and pid of thier respective post
 keyWords_to_ColumnNums_Dict = {} #dictionary storing the collumn numbers for respective keywords for fast collum num search
 replaceURLBool = False #bool for replacing found url's or not
+wordPermutationsBool = False #bool for searching with word permutations or not
 
 keyWordsFile = open('LimitedKeyWords.txt', 'r')#open the file containing key words
 keyWords = re.split(r'\n', keyWordsFile.read().lower()) #split file into list (tuple?) of keyWords
@@ -32,7 +33,7 @@ Password = "1"
 con = psycopg2.connect(database=DBname, user = "postgres", password=Password) #connect to postgres
 curs = con.cursor() #create a cursor for this database, allows us to access info from it
 
-ExecuteStatement = "SELECT pid, tid, pdate, pcontent FROM tbl_wilders_post WHERE pdate > '2016-05-01'"
+ExecuteStatement = "SELECT pid, tid, pdate, pcontent FROM tbl_wilders_post WHERE pdate > '2016-01-01'"
 # testExec = "SELECT pid, username, title, pcontent FROM testgs WHERE pid <= 9"
 # insrtExec = "INSERT INTO testgs(title, pcontent) VALUES (title, 'testtest')"
 curs.execute(ExecuteStatement) #perform the select defined above
@@ -58,6 +59,18 @@ if subuserOp == "y":
 elif subuserOp == "n":
     print("You selected no")
     #bool isn't set to false here since it is false by default
+    
+userOption = input("Would you like to search for word permutations as well as exact word matches? (enter y/n): ")
+while(len(userOption) == 0 or (userOption[0].lower() != "y" and userOption[0].lower() != "n")):
+    userOption = input("Im sorry, please enter either the letter 'y' or 'n': ")
+subuserOp = userOption[0].lower() #prevents repetitive substring code below
+    
+if subuserOp == "y":
+    print("You selected yes")
+    wordPermutationsBool = True #set bool flag to true if use would like to replace found URL's
+elif subuserOp == "n":
+    print("You selected no")
+
 
 #create a map mapping PID's to line numbers in sparse matrix
 for i in range(len(selectDataMatrix)): #for each post
@@ -67,7 +80,7 @@ for i in range(len(selectDataMatrix)): #for each post
 
     wordcount.findIPs(cleanPostContent, ipDict)
     wordcount.findURLs(selectDataMatrix[i], cleanPostContent, urlDict) #pass in urlDict and adds all found URL's from current post  to urlDict
-    wordcount.findKeyWords(cleanPostContent, keyWords, fileOut, i, keyWords_to_ColumnNums_Dict) #pass in list of post content and keywords, writes to file keywords
+    wordcount.findKeyWords(cleanPostContent, keyWords, fileOut, i, keyWords_to_ColumnNums_Dict, wordPermutationsBool) #pass in list of post content and keywords, writes to file keywords
     
     numPostURLS = len(urlDict) - prevNumUrls
     if replaceURLBool and numPostURLS != 0:
@@ -103,8 +116,6 @@ print("--- %s seconds ---" % (time.time() - start_time))
 #Questions 12/22
     # <img src tags not being found is that ok?
         # almost every img src ive seen in wilders is not an http, thats why I havent grabbed it. offcom is opposite
-    # I noticed a <a tag class type called "internalLink" which refers to a url link within the own website, should I find those?    
-    # just to make sure, should I be replacing urls in the a tag and where they are actually writting in the case where they are both right next to eachother
     
 #URL's to investigate...
     #www.' 2584540
@@ -114,12 +125,8 @@ print("--- %s seconds ---" % (time.time() - start_time))
     #www.facebook.com<CTRL+Z><enter>Click' 2451103
     
 #notes 
-    # format sparse matrix a little better
     # fix/replace re so that urls without www or http can be found.
     # include both ip prefix and v6 in ip search
-    # Dictionary get updated when SAME KEY is found, only finding one (last) of each URL/IP, fix this.
-    # Use NLTK too.
-    # make sure URL is being found again in quote section... go to actual post online to check
     
 #Questions for 11/17
     #for the keywords, do i want to grab them within other words? Ex: bot being found in botanical

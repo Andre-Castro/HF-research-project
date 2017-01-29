@@ -88,7 +88,6 @@ print(sample)
 #permutations of each word, for example from the POSTesting with 6 different permutations of the word "attack", the NLTK
 #dictionary only has the words "attack" and "attacker" ("attackable" was also there but it was not used in POSTesting.txt)
 #SOOOO what I should focus on doing then is being able to extract the root word from the parsed words and then compare THOSE
-#Key word, "Lemmatize"
 
 #--------------------------------------------------------------------------------------------------------------------------
 #                                                        BREAK
@@ -208,12 +207,11 @@ print(sample)
 
 
 #ADD MORE KEYWORDS up to 1000
-# in wilders security, there is a subtrhead called "malware problems and news" Go there and select keywords based off that
-#change current stemming method, stem the keywords that should be stemmed and then compare stems to stems of words in
-#pcontent
-#look at current tab open for tons for keyWords
+#    in wilders security, there is a subtrhead called "malware problems and news" Go there and select keywords based off that
+#    change current stemming method, stem the keywords that should be stemmed and then compare stems to stems of words in pcontent
+#    look at current tab open for tons for keyWords
 #misspellings if time USE LIBRARIES
-#GIThub
+#    GIThub
 #generate csv for all uses of keywords per Database (contain Ip's and URL's)
-#ctrl+shift+esc = task manager
-#create two options, run one without stemming, one with
+#    ctrl+shift+esc = task manager
+#    create two options, run one without stemming, one with

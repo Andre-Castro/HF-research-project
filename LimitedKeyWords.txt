@@ -1,12 +1,15 @@
+ Adware 
  Air-Gapped Network 
  Antivirus 
  Assault 
  Attack 
  Attack Signature 
  AVG 
+ backdoor
  Back Door 
  Bad Domain 
  Best Practices 
+ Bitcoins 
  Black Hat 
  Blacklist 
  Blended Attack 
@@ -16,21 +19,28 @@
  bot 
  Boundary Protection 
  Breach 
+ Brute Force 
+ Bypass 
  Casus Belli 
+ Cache Poisoning 
  Civilian Participation 
+ Clickjacking 
  Combatant Status 
  Communications Privacy Law 
  Compromised 
  Computer Emergency Response Team 
  Computer Network Attack 
  Cookies 
+ Corruption 
  COTS Software 
  Counter Attack 
  Cracker 
  Crashed 
  Credit Card Fraud 
  Crimeware 
+ Cron 
  Cross Site Scripting 
+ Cryptography 
  Cryptoworm 
  Cyber Crime 
  Cyber Security as an Externality 
@@ -45,17 +55,23 @@
  Decrypt 
  Digital Pearl Harbor 
  Disclosure Policy 
+ Disruption 
  Distributed Denial of Service (DDoS) 
+ Domain Hijacking 
  Down 
  Downloader 
+ DumpSec
  Dumpster Diving 
+ Eavesdropping 
  Encrypt 
  Einstein 
  E.U. Cybersecurity 
  Exploit 
  False Rejection 
+ Fingerprinting 
  Fireeye 
  Firewall 
+ Flooding 
  Fraud 
  Freaking out 
  Freeze 
@@ -65,6 +81,9 @@
  Hacker 
  Hacktivism 
  Hacktivist 
+ Hijack 
+ Hoax 
+ Honeymonkey 
  Honeypot 
  Identity Fraud 
  Identity Theft 
@@ -74,17 +93,21 @@
  Intelligence Infrastructure/Information Infrastructure 
  Information Operations 
  Interdependencies 
+ Interference 
  International Humanitarian Law 
  Internet Relay Chat (IRC) 
  Internet Service Providers 
  Invasion 
+ IP Spoofing 
  JavaScript 
  Keylogger 
  Kinetic Attack 
  Lawfare 
  Laws of War 
  Locked 
+ Log Clipping 
  Logic Bomb 
+ Malcode 
  Malware 
  Malicious 
  Master Program 
@@ -99,12 +122,16 @@
  Onslaught 
  Organized Crime 
  Outreach and Collaboration 
+ Overloading 
  Password Weakness 
+ Password Stealer 
  Patching 
  Payload 
  Peddler
+ Pharming 
  Phishing 
  Phreaker 
+ Ping Sweep 
  Privacy Law 
  Problem 
  Polymorphic Virus 
@@ -127,7 +154,9 @@
  Script Kiddie 
  Security Trade-Offs 
  Shoulder Surfing 
+ Smurf 
  Sneakernet 
+ Sniffer 
  Social Engineering 
  Social Network 
  Software Vulnerability 
@@ -136,11 +165,14 @@
  Spoofing 
  Spybot 
  Spyware 
+ SQL injection 
  SSL 
  State Affiliation 
  Stuck 
  Suffer 
  Suspicious 
+ Syn Flood 
+ Tampering 
  Theft 
  Threat 
  Toast 
@@ -149,6 +181,7 @@
  Transparency 
  Trick 
  Trojan 
+ Victim 
  Virtual Military Technologies 
  Virtual Warfare 
  Virus 
@@ -161,6 +194,6 @@
  Win32 Malware.gen
  Windows Defender 
  Worm 
- Zero-Day Exploit 
+ Zero-Day 
  Zombie 
  Zombie Drone 
