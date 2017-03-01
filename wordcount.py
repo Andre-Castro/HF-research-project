@@ -6,7 +6,33 @@ Created on Jan 25, 2017
 from bs4 import BeautifulSoup
 from nltk.stem import PorterStemmer
 import re
+# import enchant
+import psycopg2
 
+def findAllWords(cleanPostContent, wordDict): #passing the pcontent (cleaned with clean function) this function adds word instances to wordDict dictionary
+    pConWords = cleanPostContent.split()
+    for word in pConWords:
+        word = re.sub(r'[^\s\w]|_','',word)
+        if word not in wordDict:
+            wordDict[word] = 1
+        else:
+            wordDict[word] = wordDict[word] + 1
+            
+def findAllWordsfromPID(PIDList, wordDict, curs, DBname): #given a list of PID's, this function goes through and stores every instnace of a word in the wordDict dictionary
+    for pid in PIDList:
+        ExecuteStatement = "SELECT pid, pcontent FROM " + DBname + " WHERE pid = '" + str(pid) + "'"
+        print(ExecuteStatement)
+        curs.execute(ExecuteStatement)
+        selectDataMatrix = curs.fetchall()
+        cleanPostContent = clean(selectDataMatrix[0][1])
+        pConWords = cleanPostContent.split()
+        for word in pConWords:
+            word = re.sub(r'[^\s\w]|_','',word)
+            if word not in wordDict:
+                wordDict[word] = 1
+            else:
+                wordDict[word] = wordDict[word] + 1
+            
 def findKeyWords(postContent, keyWords, file, row, colNums, permutationsBool):
     if not permutationsBool:
         for keyWord in keyWords: #for each keyWord
@@ -17,6 +43,7 @@ def findKeyWords(postContent, keyWords, file, row, colNums, permutationsBool):
                 file.write(str(row) + ',' + str(col) + ',' + str(numKeyWord) + "\n")
     else:
         ps = PorterStemmer()
+#         d = enchant.Dict("end_US")
         
         keyWordsStemmed = []
         wordDict = {}
@@ -104,10 +131,15 @@ def replaceURLs(postDataTuple, urlDict, specificNumPostURLS, cursor):
     return
 
 def findIPs(postContent, ipDict): #currently only ipv4
-    ipNums = re.findall(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", postContent)
+    ipMatchRe = "(([0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]))"
+#     ipNums = re.findall(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", postContent)
+    ipNums = re.findall(ipMatchRe, postContent)
     if len(ipNums) is not 0:
         for ip in ipNums:
-            ipDict[ip] = "v4"
+            if ip[0] not in ipDict:
+                ipDict[ip[0]] = 1
+            else:
+                ipDict[ip[0]] = ipDict[ip[0]] + 1
     return
 
 def clean(postContent):
@@ -136,3 +168,18 @@ def clean(postContent):
 #email github link
 #include ALL words, not just malcioius intent ones
 #ultimately, combine generated keywords
+
+
+#2/3
+#for ip:
+# IP addresses take prefernce over URL's.
+# Once IP is found, decide if IP is malicitous, can check same post (use PID) to see if nearby words are the
+#'concren words. In the end report malicious IP's.
+#also all the posts where the IP appeared, first is most important
+#also see what is being said around the malicious IP's
+#    for this think about whether more false positive or false negatives are worse
+
+#for keywords:
+#percentage of posts per word
+#have to compare number of word instances to time 
+#Consider throwing out blockQuotes, dont want to find the same text repeated 5 times
