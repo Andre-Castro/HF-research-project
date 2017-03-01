@@ -17,11 +17,37 @@ def findAllWords(cleanPostContent, wordDict): #passing the pcontent (cleaned wit
             wordDict[word] = 1
         else:
             wordDict[word] = wordDict[word] + 1
+    return
+# '''
+# KEYWORD LIST SPECIFICATIONS:
+# '''
+def findKeyWords(cleanPostContent, wordDict, keyWordsList): #passing the pcontent (cleaned with clean function) this function adds KEYword instances to wordDict dictionary
+    ps = PorterStemmer()
+    keyWordsStemmed = []
+    for word in keyWordsList:
+        keyWordsStemmed.append(" " + ps.stem(word.strip(" "))) #the stem of all the specified keyWords
+        
+    keyWordsZip = zip(keyWordsList, keyWordsStemmed)#going to zip as a quick-fix for now, in the future use only stemmed keywords? seems the base form is not important...
+    #KEY WORDS ZIP COULD BE PASSED IN AS PARAMETER RATHER THAN BEING MADE EACH TIME FOR OPTIMIZAITON
+        #requires user to know how to code that however
+    for word in keyWordsZip:
+        if word[1].lower() in cleanPostContent: #only check if word stem exists in file, doesnt take into account how many times its in file
+            amount = 0
+            pattern = word[1] + "[\S]*"
+            wordInstances = re.findall(pattern,cleanPostContent)
+            for instance in wordInstances:
+                if word[1] == ps.stem(re.sub(r'[^\s\w]|_','',instance)): #check if the stems of the found words are the same, re is there to remove punctuation and unnecessary characters
+                    amount = amount + 1
+            if amount != 0:
+                if word[0] not in wordDict:
+                    wordDict[word[0]] = amount
+                else:
+                    wordDict[word[0]] = wordDict[word[0]] + 1
+    return
             
 def findAllWordsfromPID(PIDList, wordDict, curs, DBname): #given a list of PID's, this function goes through and stores every instnace of a word in the wordDict dictionary
     for pid in PIDList:
         ExecuteStatement = "SELECT pid, pcontent FROM " + DBname + " WHERE pid = '" + str(pid) + "'"
-        print(ExecuteStatement)
         curs.execute(ExecuteStatement)
         selectDataMatrix = curs.fetchall()
         cleanPostContent = clean(selectDataMatrix[0][1])
@@ -32,8 +58,18 @@ def findAllWordsfromPID(PIDList, wordDict, curs, DBname): #given a list of PID's
                 wordDict[word] = 1
             else:
                 wordDict[word] = wordDict[word] + 1
+    return
+
+def findKeyWordsFromPid(PIDList, wordDict, keyWordsList, curs, DBname): #passing the pcontent (cleaned with clean function) this function adds KEYword instances to wordDict dictionary
+    for pid in PIDList:
+        ExecuteStatement = "SELECT pid, pcontent FROM " + DBname + " WHERE pid = '" + str(pid) + "'"
+        curs.execute(ExecuteStatement)
+        selectDataMatrix = curs.fetchall()
+        cleanPostContent = clean(selectDataMatrix[0][1])
+        findKeyWords(cleanPostContent, wordDict, keyWordsList)
+    return
             
-def findKeyWords(postContent, keyWords, file, row, colNums, permutationsBool):
+def findKeyWordsCSV(postContent, keyWords, file, row, colNums, permutationsBool):
     if not permutationsBool:
         for keyWord in keyWords: #for each keyWord
             numKeyWord = postContent.count(keyWord) #part where i should change the matching algorithm
@@ -183,3 +219,4 @@ def clean(postContent):
 #percentage of posts per word
 #have to compare number of word instances to time 
 #Consider throwing out blockQuotes, dont want to find the same text repeated 5 times
+
