@@ -1,3 +1,4 @@
+from __future__ import print_function
 '''
 Created on Jan 25, 2017
 
@@ -8,6 +9,14 @@ from nltk.stem import PorterStemmer
 import re
 # import enchant
 import psycopg2
+import os
+import sys
+import traceback
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from operator import itemgetter
+from datetime import date
 
 def findAllWords(cleanPostContent, wordDict): #passing the pcontent (cleaned with clean function) this function adds word instances to wordDict dictionary
     pConWords = cleanPostContent.split()
@@ -68,6 +77,97 @@ def findKeyWordsFromPid(PIDList, wordDict, keyWordsList, curs, DBname): #passing
         cleanPostContent = clean(selectDataMatrix[0][1])
         findKeyWords(cleanPostContent, wordDict, keyWordsList)
     return
+            
+def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
+    con = psycopg2.connect(database=DBname, user = "postgres", password=pword) #connect to postgres
+    curs = con.cursor()
+    
+    keyWordsFile = open(keyWordsfilepath, 'r')#open the file containing key words
+    keyWords = re.split(r'\n', keyWordsFile.read().lower()) #split file into list (tuple?) of keyWords
+    ps = PorterStemmer()
+    keyWordsStemmed = []
+    for word in keyWords:
+        keyWordsStemmed.append(" " + ps.stem(word.strip(" "))) #the stem of all the specified keyWords
+    
+    keyWordsZip = list(zip(keyWords, keyWordsStemmed))
+    
+    TIDlist = np.genfromtxt(TIDfilepath, delimiter = ',')
+#     print(TIDlist)
+    plotData = {}
+    wordDict = {}
+    numNone = 0
+    for tid in TIDlist[1:]:
+        #print(str(tid))
+        ExecuteStatement = "SELECT pid, tid, pdate, pcontent FROM " + tableName + " WHERE tid = " + str(tid)
+        curs.execute(ExecuteStatement)
+        selectDataMatrix = curs.fetchall()
+        
+        for i in range(len(selectDataMatrix)):
+            if selectDataMatrix[i][2] is not None:
+                findKeyWordsPreStemmed(clean(selectDataMatrix[i][3]), wordDict, keyWordsZip)
+                y, m, d = str(selectDataMatrix[i][2]).split('-')
+                pdate = date(int(y), int(m), int(d))
+                for word in wordDict:
+                    if word in plotData:
+                        sameDate = False
+                        for tpl in plotData[word]:
+                            if pdate == tpl[0]:
+                                numIntances = tpl[1] + wordDict[word]
+                                newTpl = (tpl[0], numIntances)
+                                tpl = newTpl
+                                sameDate = True
+                        if not sameDate:
+                            plotData[word].append((pdate, wordDict[word]))
+                    else:
+                        pair = (pdate, wordDict[word])
+                        plotData[word] = []
+                        plotData[word].append(pair)
+    #             print(wordDict)
+                wordDict.clear()
+            else:
+                numNone = numNone + 1
+#     print(type(plotData[" malware"][2]))
+#     print(plotData[" install"])
+    #at this point in code, all keywords should have been found
+    
+    mpl.rcParams['font.size'] = 20
+    fig = plt.figure(figsize=(200, 6))
+    ax  = fig.add_subplot('111')
+    
+    for word in plotData:
+        plotData[word] = sorted(plotData[word],key=itemgetter(0))
+        pdates = []
+        instances = []
+        for item in plotData[word]:
+            pdates.append(item[0])
+            instances.append(item[1])
+#         print(pdates)
+        ax.plot(pdates, instances, 'o-', c=np.random.rand(3,1), lw=2, alpha=0.8)
+    fig.tight_layout()
+    fig.savefig('timeseries.png')
+
+    print("A total of", str(numNone) + " posts with no p-date that weren't accounted for.")
+    return
+            
+def findKeyWordsPreStemmed(cleanPostContent, wordDict, keyWordsZip): #same as findKeyWords(), just takes a prestemmed keyWord list for optimization
+    ps = PorterStemmer()
+    for word in keyWordsZip:
+        if word[1].lower() in cleanPostContent: #only check if word stem exists in file, doesnt take into account how many times its in file
+            amount = 0
+            pattern = word[1] + "[\S]*"
+            wordInstances = re.findall(pattern,cleanPostContent)
+            for instance in wordInstances:
+#                 print(re.sub(r'[^\s\w]|_','',instance))
+#                 print("---" + ps.stem(re.sub(r'[^\s\w]|_', '',instance)))
+                if word[1] == ps.stem(re.sub(r'[^\s\w]|_','',instance)): #check if the stems of the found words are the same, re is there to remove punctuation and unnecessary characters
+                    amount = amount + 1
+            if amount != 0:
+                if word[0] not in wordDict:
+                    wordDict[word[0]] = amount
+                else:
+                    wordDict[word[0]] = wordDict[word[0]] + 1
+    return            
+            
             
 def findKeyWordsCSV(postContent, keyWords, file, row, colNums, permutationsBool):
     if not permutationsBool:
@@ -182,6 +282,7 @@ def clean(postContent):
     postContent = re.sub(r'(\\t)*(\\n)*','',postContent) #removes all \n and \t
     soup = BeautifulSoup(postContent, "html.parser")
     postContent = soup.get_text(separator=" ")
+    postContent = postContent.lower()
 #     print(postContent.encode("utf-8"))
     return postContent
 
