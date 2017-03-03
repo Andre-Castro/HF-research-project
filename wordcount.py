@@ -133,6 +133,8 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
     mpl.rcParams['font.size'] = 20
     fig = plt.figure(figsize=(200, 6))
     ax  = fig.add_subplot('111')
+    outputFile = open('plotCSV.csv', 'w')
+    outputFile.write("Pdate, KeyWord, numInstances\n")
     
     for word in plotData:
         plotData[word] = sorted(plotData[word],key=itemgetter(0))
@@ -141,11 +143,13 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
         for item in plotData[word]:
             pdates.append(item[0])
             instances.append(item[1])
+            outputFile.write(str(item[0]) + "," + word + "," + str(item[1]) + "\n")
 #         print(pdates)
         ax.plot(pdates, instances, 'o-', c=np.random.rand(3,1), lw=2, alpha=0.8)
     fig.tight_layout()
     fig.savefig('timeseries.png')
-
+    outputFile.close()
+    
     print("A total of", str(numNone) + " posts with no p-date that weren't accounted for.")
     return
             
