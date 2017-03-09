@@ -106,6 +106,8 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
                 findKeyWordsPreStemmed(clean(selectDataMatrix[i][3]), wordDict, keyWordsZip)
                 y, m, d = str(selectDataMatrix[i][2]).split('-')
                 pdate = date(int(y), int(m), int(d))
+#                 tocompare = date(2015,12,31)
+#                 if pdate > tocompare:
                 for word in wordDict:
                     if word in plotData:
                         sameDate = False
@@ -125,11 +127,6 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
                 wordDict.clear()
             else:
                 numNone = numNone + 1
-            if i > 5:
-                print("HELLO")
-                BOOLEANJ = True
-        if BOOLEANJ:
-            break
 #     print(type(plotData[" malware"][2]))
 #     print(plotData[" install"])
     #at this point in code, all keywords should have been found
