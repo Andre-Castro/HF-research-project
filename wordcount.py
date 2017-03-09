@@ -8,10 +8,8 @@ from bs4 import BeautifulSoup
 from nltk.stem import PorterStemmer
 import re
 # import enchant
+import pylab
 import psycopg2
-import os
-import sys
-import traceback
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -96,6 +94,7 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
     plotData = {}
     wordDict = {}
     numNone = 0
+    BOOLEANJ = False
     for tid in TIDlist[1:]:
         #print(str(tid))
         ExecuteStatement = "SELECT pid, tid, pdate, pcontent FROM " + tableName + " WHERE tid = " + str(tid)
@@ -126,6 +125,11 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
                 wordDict.clear()
             else:
                 numNone = numNone + 1
+            if i > 5:
+                print("HELLO")
+                BOOLEANJ = True
+        if BOOLEANJ:
+            break
 #     print(type(plotData[" malware"][2]))
 #     print(plotData[" install"])
     #at this point in code, all keywords should have been found
@@ -136,6 +140,7 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
     outputFile = open('plotCSV.csv', 'w')
     outputFile.write("Pdate, KeyWord, numInstances\n")
     
+    i=0
     for word in plotData:
         plotData[word] = sorted(plotData[word],key=itemgetter(0))
         pdates = []
@@ -145,7 +150,10 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
             instances.append(item[1])
             outputFile.write(str(item[0]) + "," + word + "," + str(item[1]) + "\n")
 #         print(pdates)
-        ax.plot(pdates, instances, 'o-', c=np.random.rand(3,1), lw=2, alpha=0.8)
+        temp = ax.plot(pdates, instances, 'o-', c=np.random.rand(3,1), lw=2, alpha=0.8, label= word)
+#         plt.legend(handles=temp)
+        pylab.legend(loc='upper right', fontsize = 'small')
+        i = i + 1
     fig.tight_layout()
     fig.savefig('timeseries.png')
     outputFile.close()
