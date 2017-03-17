@@ -7,7 +7,6 @@ Created on Jan 25, 2017
 from bs4 import BeautifulSoup
 from nltk.stem import PorterStemmer
 import re
-# import enchant
 import pylab
 import psycopg2
 import numpy as np
@@ -15,6 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from operator import itemgetter
 from datetime import date
+import datetime
 
 def findAllWords(cleanPostContent, wordDict): #passing the pcontent (cleaned with clean function) this function adds word instances to wordDict dictionary
     pConWords = cleanPostContent.split()
@@ -28,6 +28,7 @@ def findAllWords(cleanPostContent, wordDict): #passing the pcontent (cleaned wit
 # '''
 # KEYWORD LIST SPECIFICATIONS:
 # '''
+
 def findKeyWords(cleanPostContent, wordDict, keyWordsList): #passing the pcontent (cleaned with clean function) this function adds KEYword instances to wordDict dictionary
     ps = PorterStemmer()
     keyWordsStemmed = []
@@ -76,7 +77,8 @@ def findKeyWordsFromPid(PIDList, wordDict, keyWordsList, curs, DBname): #passing
         findKeyWords(cleanPostContent, wordDict, keyWordsList)
     return
             
-def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
+
+def plotkeyWords(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
     con = psycopg2.connect(database=DBname, user = "postgres", password=pword) #connect to postgres
     curs = con.cursor()
     
@@ -91,51 +93,95 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
     
     TIDlist = np.genfromtxt(TIDfilepath, delimiter = ',')
 #     print(TIDlist)
+    pdateList = []
     plotData = {}
     wordDict = {}
     numNone = 0
     BOOLEANJ = False
     for tid in TIDlist[1:]:
         #print(str(tid))
-        ExecuteStatement = "SELECT pid, tid, pdate, pcontent FROM " + tableName + " WHERE tid = " + str(tid)
+        ExecuteStatement = "SELECT pid, tid, pdate, pcontent FROM " + tableName + " WHERE tid = " + str(tid) + " AND pdate > '2013-12-31' AND pdate < '2015-01-01'"
         curs.execute(ExecuteStatement)
         selectDataMatrix = curs.fetchall()
         
         for i in range(len(selectDataMatrix)):
             if selectDataMatrix[i][2] is not None:
                 findKeyWordsPreStemmed(clean(selectDataMatrix[i][3]), wordDict, keyWordsZip)
-                y, m, d = str(selectDataMatrix[i][2]).split('-')
+                y, m, d = str(selectDataMatrix[i][2]).split('-') #character could change per table
                 pdate = date(int(y), int(m), int(d))
+                if pdate not in pdateList:
+                    pdateList.append(pdate)
 #                 tocompare = date(2015,12,31)
 #                 if pdate > tocompare:
                 for word in wordDict:
                     if word in plotData:
                         sameDate = False
                         for tpl in plotData[word]:
-                            if pdate == tpl[0]:
-                                numIntances = tpl[1] + wordDict[word]
+                            if pdate == tpl[0]: #if word found on same date
+                                numIntances = tpl[1] + wordDict[word] #add num instances from that date
                                 newTpl = (tpl[0], numIntances)
-                                tpl = newTpl
+                                tpl = newTpl #update tuple pair in list
                                 sameDate = True
-                        if not sameDate:
+                        if not sameDate: #first time this word is found on this day
                             plotData[word].append((pdate, wordDict[word]))
                     else:
                         pair = (pdate, wordDict[word])
                         plotData[word] = []
                         plotData[word].append(pair)
-    #             print(wordDict)
+#                 print(wordDict)
+                for word in keyWordsZip:
+                    word = word[0]
+                    if word not in wordDict: #if word was not found in post
+#                         print(word+ " keyword was not found on " + str(pdate))
+                        if word in plotData: #found word exists in plotData
+                            sameDate = False
+                            for tpl in plotData[word]: #check each pdate for this word and see if it matches current pdate
+                                if pdate == tpl[0]: #if same pdate, 
+                                    sameDate = True #word already found for this day on different post
+                            if not sameDate:
+                                plotData[word].append((pdate,0))
+                        else: #word does not exist in plotData yet
+                            pair = (pdate, 0) #creaste a pair of 0 instances on pdate
+                            plotData[word] = [] #initialize empty list
+                            plotData[word].append(pair) #add pair to list
                 wordDict.clear()
             else:
                 numNone = numNone + 1
-#     print(type(plotData[" malware"][2]))
-#     print(plotData[" install"])
-    #at this point in code, all keywords should have been found
-    
+            if i > 5: #use this code to limit how many points get plotted for testing reasons
+                BOOLEANJ = True
+        if BOOLEANJ:
+            break
+#         
+    #So theres an issue with the way the above code works, it only plots points on the dates where there are posts
+    #so if someone is trying to select a few specific threads that happen two years apart, there is no data for all
+    #time in between those two years so no points are being plotted. So to fix: for every MONTH (this can be changed
+    #where the user wants to change over what time period these plot points can be viewed) that doesnt have any data,
+    #plug in 0 for all words.
+    pdateList = sorted(pdateList)
+    for i in range(len(pdateList)-1):
+        dateDifference = pdateList[i+1] - pdateList[i]
+#         print("Difference: " + str(dateDifference.days))
+        if dateDifference.days > 15:
+#             print("0's plotted on this day:", pdateList[i] + datetime.timedelta(days=1))
+#             print("0's plotted on this day:", pdateList[i+1] - datetime.timedelta(days=1))
+            for word in keyWordsZip:
+                word = word[0]
+                pair = (pdateList[i] + datetime.timedelta(days=1), 0) #creaste a pair of 0 instances on pdate
+                pair2 = (pdateList[i+1] - datetime.timedelta(days=1), 0)
+                plotData[word].append(pair) #add pair to list
+                plotData[word].append(pair2)
+    #at this point in code, all keywords should have been found and organized away into plottable data
+#     for element in pdateList:
+#         print(element)
+
     mpl.rcParams['font.size'] = 20
     fig = plt.figure(figsize=(200, 6))
+    fig.set_size_inches(50, 10) #adjustable, (width, height)
     ax  = fig.add_subplot('111')
     outputFile = open('plotCSV.csv', 'w')
     outputFile.write("Pdate, KeyWord, numInstances\n")
+    lineStyle = ['-', '--', '-.', ':']
+    markerStyle = ['.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'D', 'd', '|', '_']
     
     i=0
     for word in plotData:
@@ -147,17 +193,139 @@ def plot(DBname, pword, TIDfilepath, tableName, keyWordsfilepath):
             instances.append(item[1])
             outputFile.write(str(item[0]) + "," + word + "," + str(item[1]) + "\n")
 #         print(pdates)
-        temp = ax.plot(pdates, instances, 'o-', c=np.random.rand(3,1), lw=2, alpha=0.8, label= word)
+        ax.plot(pdates, instances, 'o-', c=np.random.rand(3,1), lw=2, alpha=0.8, label= word, linestyle= lineStyle[i%4], marker = markerStyle[i%20])
 #         plt.legend(handles=temp)
-        pylab.legend(loc='upper right', fontsize = 'small')
+        legend = pylab.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc = 3, ncol = 2, mode = "expand", borderaxespad = 0, fontsize = 'small')
         i = i + 1
-    fig.tight_layout()
-    fig.savefig('timeseries.png')
+#     fig.tight_layout()
+    fig.savefig('timeseries.png', bbox_extra_artists=(legend,), bbox_inches='tight')
     outputFile.close()
     
     print("A total of", str(numNone) + " posts with no p-date that weren't accounted for.")
     return
-            
+
+def plotNoTid(DBname, pword, tableName, keyWordsfilepath):
+    con = psycopg2.connect(database=DBname, user = "postgres", password=pword) #connect to postgres
+    curs = con.cursor()
+    
+    keyWordsFile = open(keyWordsfilepath, 'r')#open the file containing key words
+    keyWords = re.split(r'\n', keyWordsFile.read().lower()) #split file into list (tuple?) of keyWords
+    ps = PorterStemmer()
+    keyWordsStemmed = []
+    for word in keyWords:
+        keyWordsStemmed.append(" " + ps.stem(word.strip(" "))) #the stem of all the specified keyWords
+    
+    keyWordsZip = list(zip(keyWords, keyWordsStemmed))
+    
+    pdateList = []
+    plotData = {}
+    wordDict = {}
+    numNone = 0
+    ExecuteStatement = "SELECT pid, tid, pdate, pcontent FROM " + tableName + " WHERE pdate > '2013-12-31' AND pdate < '2015-01-01'"
+    curs.execute(ExecuteStatement)
+    selectDataMatrix = curs.fetchall()
+    
+    for i in range(len(selectDataMatrix)):
+        if selectDataMatrix[i][2] is not None:
+            findKeyWordsPreStemmed(clean(selectDataMatrix[i][3]), wordDict, keyWordsZip)
+            y, m, d = str(selectDataMatrix[i][2]).split('-') #character could change per table
+            pdate = date(int(y), int(m), int(d))
+            if pdate not in pdateList:
+                pdateList.append(pdate)
+#                 tocompare = date(2015,12,31)
+#                 if pdate > tocompare:
+            for word in wordDict:
+                if word in plotData:
+                    sameDate = False
+                    for tpl in plotData[word]:
+                        if pdate == tpl[0]: #if word found on same date
+                            numIntances = tpl[1] + wordDict[word] #add num instances from that date
+                            newTpl = (tpl[0], numIntances)
+                            tpl = newTpl #update tuple pair in list
+                            sameDate = True
+                    if not sameDate: #first time this word is found on this day
+                        plotData[word].append((pdate, wordDict[word]))
+                else:
+                    pair = (pdate, wordDict[word])
+                    plotData[word] = []
+                    plotData[word].append(pair)
+#                 print(wordDict)
+            for word in keyWordsZip:
+                word = word[0]
+                if word not in wordDict: #if word was not found in post
+#                         print(word+ " keyword was not found on " + str(pdate))
+                    if word in plotData: #found word exists in plotData
+                        sameDate = False
+                        for tpl in plotData[word]: #check each pdate for this word and see if it matches current pdate
+                            if pdate == tpl[0]: #if same pdate, 
+                                sameDate = True #word already found for this day on different post
+                        if not sameDate:
+                            plotData[word].append((pdate,0))
+                    else: #word does not exist in plotData yet
+                        pair = (pdate, 0) #creaste a pair of 0 instances on pdate
+                        plotData[word] = [] #initialize empty list
+                        plotData[word].append(pair) #add pair to list
+            wordDict.clear()
+        else:
+            numNone = numNone + 1
+#         if i > 150: #use this code to limit how many points get plotted for testing reasons
+#             break
+#         
+    #So theres an issue with the way the above code works, it only plots points on the dates where there are posts
+    #so if someone is trying to select a few specific threads that happen two years apart, there is no data for all
+    #time in between those two years so no points are being plotted. So to fix: for every MONTH (this can be changed
+    #where the user wants to change over what time period these plot points can be viewed) that doesnt have any data,
+    #plug in 0 for all words.
+    pdateList = sorted(pdateList)
+    for i in range(len(pdateList)-1):
+        dateDifference = pdateList[i+1] - pdateList[i]
+#         print("Difference: " + str(dateDifference.days))
+        if dateDifference.days > 15:
+#             print("0's plotted on this day:", pdateList[i] + datetime.timedelta(days=1))
+#             print("0's plotted on this day:", pdateList[i+1] - datetime.timedelta(days=1))
+            for word in keyWordsZip:
+                word = word[0]
+                pair = (pdateList[i] + datetime.timedelta(days=1), 0) #creaste a pair of 0 instances on pdate
+                pair2 = (pdateList[i+1] - datetime.timedelta(days=1), 0)
+                plotData[word].append(pair) #add pair to list
+                plotData[word].append(pair2)
+    #at this point in code, all keywords should have been found and organized away into plottable data
+#     for element in pdateList:
+#         print(element)
+
+    mpl.rcParams['font.size'] = 20
+    fig = plt.figure(figsize=(200, 6))
+    fig.set_size_inches(50, 10) #adjustable, (width, height)
+    ax  = fig.add_subplot('111')
+    outputFile = open('plotCSV.csv', 'w')
+    outputFile.write("Pdate, KeyWord, numInstances\n")
+    lineStyle = ['-', '--', '-.', ':']
+    markerStyle = ['.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'D', 'd', '|', '_']
+    
+    i=0
+    for word in plotData:
+        plotData[word] = sorted(plotData[word],key=itemgetter(0))
+        pdates = []
+        instances = []
+        for item in plotData[word]:
+            pdates.append(item[0])
+            instances.append(item[1])
+            outputFile.write(str(item[0]) + "," + word + "," + str(item[1]) + "\n")
+#         print(pdates)
+        ax.plot(pdates, instances, 'o-', c=np.random.rand(3,1), lw=2, alpha=0.8, label= word, linestyle= lineStyle[i%4], marker = markerStyle[i%20])
+#         plt.legend(handles=temp)
+        pylab.legend(loc='upper right', fontsize = 'small')
+        i = i + 1
+    fig.tight_layout()
+    fig.savefig('Andre\'s_Outputs\Plots\2014keyWords_mal(noTidList).png')
+    outputFile.close()
+    
+    print("A total of", str(numNone) + " posts with no p-date that weren't accounted for.")
+    return
+  
+def plotFileAggregation(DBname, pword, tableName, filePathsList):  
+     print("placeholder")
+
 def findKeyWordsPreStemmed(cleanPostContent, wordDict, keyWordsZip): #same as findKeyWords(), just takes a prestemmed keyWord list for optimization
     ps = PorterStemmer()
     for word in keyWordsZip:
@@ -176,7 +344,6 @@ def findKeyWordsPreStemmed(cleanPostContent, wordDict, keyWordsZip): #same as fi
                 else:
                     wordDict[word[0]] = wordDict[word[0]] + 1
     return            
-            
             
 def findKeyWordsCSV(postContent, keyWords, file, row, colNums, permutationsBool):
     if not permutationsBool:
